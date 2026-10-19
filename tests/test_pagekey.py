@@ -415,3 +415,9 @@ def test_history_keeps_every_check_with_the_page_hash(env):
     h = json.loads(c.get_binding(URL))["history"]
     assert [x["result"] for x in h] == ["claimed", "unchanged", "absent"]
     assert h[0]["content_hash"] == h[1]["content_hash"] != h[2]["content_hash"]
+
+
+def test_errors_are_user_errors_and_every_contract_method_takes_self():
+    body = SOURCE.split("class PageKey")[1]
+    assert "raise Exception(" not in SOURCE and "raise gl.vm.UserError(" in SOURCE
+    assert "@staticmethod" not in body and "@classmethod" not in body

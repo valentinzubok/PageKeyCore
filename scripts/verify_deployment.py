@@ -9,7 +9,7 @@ import sys
 import urllib.request
 
 RPC = "https://studio-dev.genlayer.com/api"
-ADDRESS = "0x909151ae02909e88a2D03c73591e90a0DA0AF95d"
+ADDRESS = "0xb5F562154eF5c8c6a22De84E2e32645E8c0aAe4F"
 SOURCE = pathlib.Path(__file__).resolve().parents[1] / "contracts" / "PageKey.py"
 
 

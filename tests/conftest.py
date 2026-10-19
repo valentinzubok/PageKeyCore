@@ -99,7 +99,18 @@ def _install_fake_genlayer() -> None:
             raise reply
         return reply
 
+    class UserError(Exception):
+        """`gl.vm.UserError`: the error a contract raises on purpose."""
+
+        def __init__(self, message=""):
+            super().__init__(message)
+            self.message = message
+
     gl.contract = types.SimpleNamespace(Contract=_Contract)
+    gl.Contract = _Contract
+    gl.vm = types.SimpleNamespace(UserError=UserError)
+    gl.gl = gl  # `from genlayer import *` brings `gl` into the contract module
+    gl.Address = str
     gl.public = _Public()
     gl.evm = types.SimpleNamespace(contract_interface=_evm_interface)
     gl.message = types.SimpleNamespace(

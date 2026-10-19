@@ -3,87 +3,65 @@
 | | |
 |---|---|
 | **Network** | GenLayer Studio Dev / Studio Next — chain `61997` |
-| **RPC** | `https://studio-dev.genlayer.com/api` |
-| **Contract** | [`0x909151ae02909e88a2D03c73591e90a0DA0AF95d`](https://explorer-studio-dev.genlayer.com/address/0x909151ae02909e88a2D03c73591e90a0DA0AF95d) |
-| **Deploy tx** | [`0xe8b0951f…0ffb02`](https://explorer-studio-dev.genlayer.com/tx/0xe8b0951f1580e0077a13278a2c0c2bda4af9dfd9df35389c1039d170c30ffb02) from `0x42F132a0519Ee2702A97f1f1f3Fe0E8041A2d542`, which has no role in the contract |
+| **Contract** | [`0xb5F562154eF5c8c6a22De84E2e32645E8c0aAe4F`](https://explorer-studio-dev.genlayer.com/address/0xb5F562154eF5c8c6a22De84E2e32645E8c0aAe4F) |
+| **Deploy tx** | [`0x025f6dfe…abddf1`](https://explorer-studio-dev.genlayer.com/tx/0x025f6dfe223c02022ad659c5dc4e23d4a95ffb0ac80bf8475b3e75e7a0abddf1) from `0x73064D61A55Fdc895a87fA0432637CdBfc80B7a3`, which has no role in the contract |
 | **Source** | [`contracts/PageKey.py`](contracts/PageKey.py) — runner `py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng` |
-| **Source sha256** | `e640f2e2247ed0cb9e8c450dc0afd866b4a16cd12d97fef49f252d82abdcaae9` |
+| **Source sha256** | `857f77f54f26078e5832765e081d2fcd859cebaa6d82fba29ad050dcaeb3757b` |
+| **Previous deployment** | `0x909151ae02909e88a2D03c73591e90a0DA0AF95d` — [its run](docs/STUDIO_DEV_V1_RUN.md): a page changing hands, the old binding lapsing |
+
+## Lint
+
+Every refusal raises `gl.vm.UserError`, and every method of the contract class takes `self`.
+
+```bash
+pip install genvm-linter
+sh scripts/lint_current_sdk.sh
+```
+
+The script runs `genvm-lint lint` on the deployed file, then `genvm-lint check` and
+`genvm-lint typecheck` on a copy whose header and imports are switched to the public runner
+`1jb45aa8…` from GenVM v0.3.0-rc7. Studio Dev accepts only runner `5jycge4q…`, which is in no
+public GenVM release, so the linter cannot download its SDK; the public runners are refused by
+Studio Dev with `invalid_contract runner malformed`. Result: `Lint passed (3 checks)`,
+`Validation passed`, `No type errors found`. CI runs the same script on every push.
 
 ## Verify the source yourself
 
 ```bash
 curl -s -X POST https://studio-dev.genlayer.com/api -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"gen_getContractCode","params":["0x909151ae02909e88a2D03c73591e90a0DA0AF95d"]}' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"gen_getContractCode","params":["0xb5F562154eF5c8c6a22De84E2e32645E8c0aAe4F"]}' \
   | python3 -c "import sys,json,base64,hashlib; print(hashlib.sha256(base64.b64decode(json.load(sys.stdin)['result'])).hexdigest())"
 shasum -a 256 contracts/PageKey.py
-# both print e640f2e2247ed0cb9e8c450dc0afd866b4a16cd12d97fef49f252d82abdcaae9
+# both print 857f77f54f26078e5832765e081d2fcd859cebaa6d82fba29ad050dcaeb3757b
 ```
-
-`scripts/verify_deployment.py` does the same in CI on every push.
 
 ## The run
 
-Three fresh accounts:
+| Name | Address |
+|---|---|
+| Alice | `0xB6148C265E55060E81B1b4F74FD9Bf4C08079E60` |
+| Bob | `0x70A54D608C4CaFd4537DB22B43ebE3709758964D` |
+| Carol | `0x977cEe45900e48880e65AC26584D29419F88623F` |
 
-| Name | Address | Token for `profile.html` |
-|---|---|---|
-| Alice | `0xA56F1228B61AA7FBEcC1E95C8c870060fd1445b9` | `pagekey-2e5eccf721e9a2dd7167` |
-| Bob | `0x5C1c6cADA907258b2061843865F6C9aA937e67B0` | `pagekey-94a7a7654ddc27f3486a` (and `pagekey-cf92ffd729ce28be37f2` for `thread.html`) |
-| Carol | `0xb912dfcd8C7cfBEF9A0A7A09BC285fAFd1629154` | none: she only triggers rechecks |
-
-Two pages, both files on the `main` branch of the console repository ([PageKey](https://github.com/valentinzubok/PageKey)), fetched through
-`https://raw.githubusercontent.com/valentinzubok/PageKey/main/web/public/fixtures/`:
-
-- `profile.html` — a personal profile. First it is
-  [Mara's profile](https://github.com/valentinzubok/PageKey/blob/9cdfcc2d86e516740b74d64047320c0a76460b10/web/public/fixtures/versions/profile-v1-mara.html)
-  with Alice's token in the bio; a public commit then turns it into
-  [a profile under new management](https://github.com/valentinzubok/PageKey/blob/9cdfcc2d86e516740b74d64047320c0a76460b10/web/public/fixtures/versions/profile-v2-new-owner.html)
-  with Bob's token.
-- [`thread.html`](https://github.com/valentinzubok/PageKey/blob/9cdfcc2d86e516740b74d64047320c0a76460b10/web/public/fixtures/thread.html) —
-  a forum post. Bob's token for this page appears in it, in a visitor's comment.
-
-Every transaction is listed, including the four that reverted and the three claims that were
-accepted and bound nothing. Recheck interval 420 s, one miss lapses the binding.
+Pages, fetched through `https://raw.githubusercontent.com/valentinzubok/PageKey/main/web/public/fixtures/`:
+[`profile-2.html`](https://github.com/valentinzubok/PageKey/blob/a836907825ede0d84ced1baef57d9ae9bb3c8b58/web/public/fixtures/profile-2.html) states Bob's token in the owner's own
+words; [`thread-2.html`](https://github.com/valentinzubok/PageKey/blob/a836907825ede0d84ced1baef57d9ae9bb3c8b58/web/public/fixtures/thread-2.html) carries Bob's token only in a
+visitor's comment. Recheck interval 60 s, one miss lapses a binding.
 
 | # | Call | Sender | Result | What happened | Tx |
 |---|------|--------|--------|---------------|----|
-| 1 | `claim(thread.html)` | **Bob** | accepted, **binds nothing** | Bob's token is on the page, but only inside a visitor's comment. Validators: `not_own` | [`0xb05e6691…0f8d0b`](https://explorer-studio-dev.genlayer.com/tx/0xb05e6691fea3d9aaf5541f712bdb16b9583ad34efca0e6fe7299d5e4e70f8d0b) |
-| 2 | `claim(profile.html)` | **Bob** | accepted, **binds nothing** | the profile states Alice's token, not Bob's. `absent`, decided in code, no model asked | [`0x5c3fc269…594272`](https://explorer-studio-dev.genlayer.com/tx/0x5c3fc269c9348a015e0c0c665b38d30a9528d9657d466628bb891b535b594272) |
-| 3 | `claim(profile.html)` | Alice | accepted, **bound** | the profile states her token in its own bio. Validators: `own`. Page sha-256 `92afb4c770b2…` | [`0x82db9f6c…6e0bbc`](https://explorer-studio-dev.genlayer.com/tx/0x82db9f6cbb9a0db02e6148a2c0f0542f2e6282fbfb6e4643b9376123a66e0bbc) |
-| 4 | `claim(profile.html)` | **Bob** | **ERROR** | refused before any fetch: this page is bound to another address | [`0x1f69ab76…6c6d17`](https://explorer-studio-dev.genlayer.com/tx/0x1f69ab76690d3e0f47bb7dae87b155499e6a64ade6c34d4e315f6e15db6c6d17) |
-| 5 | `recheck(profile.html)` | Carol | **ERROR** | refused: too early, the recheck interval has not elapsed | [`0xc4a6b8c9…986a9a`](https://explorer-studio-dev.genlayer.com/tx/0xc4a6b8c923cf86af3ea1e77157a21ab7446d628cfd7f0c5c0b36c18f87986a9a) |
-| 6 | `release(profile.html)` | **Carol** | **ERROR** | refused: only the holder may release | [`0xbcc5f1b9…f2c2e0`](https://explorer-studio-dev.genlayer.com/tx/0xbcc5f1b90ddf742feb3b67e634c106f29d587207da7f2d21e2aa5c045cf2c2e0) |
-| 7 | `recheck(profile.html)` | Carol | accepted | same hash `92afb4c770b2…` → `unchanged`: confirmed, no model asked, `last_seen_at` refreshed | [`0x5272a275…b51fb9`](https://explorer-studio-dev.genlayer.com/tx/0x5272a275bde1319f20f2df8b1b7feac9629ee2f34b2a45e87f9f7c50d6b51fb9) |
-| 8 | `recheck(profile.html)` | Carol | accepted | the page was changed by commit [`9cdfcc2`](https://github.com/valentinzubok/PageKey/commit/9cdfcc2d86e516740b74d64047320c0a76460b10) ("under new management", `b41fc81aa188…`). Alice's token is gone → `absent` → the binding **lapsed** | [`0x827a7aa5…d73c5d`](https://explorer-studio-dev.genlayer.com/tx/0x827a7aa50ac1733181e749b8f1f23f50356642055adec49fd019a3917ad73c5d) |
-| 9 | `claim(profile.html)` | **Alice** | accepted, **binds nothing** | the old holder tries again: her token is no longer there. `absent` | [`0xa00548d9…f71b8c`](https://explorer-studio-dev.genlayer.com/tx/0xa00548d97e4942eeada36973a86430c386cd5860df91fdfab0755f0184f71b8c) |
-| 10 | `claim(profile.html)` | Bob | accepted, **bound** | the page now states Bob's token in its own voice. `own`. Holder #2 | [`0xf69a6313…10b1ef`](https://explorer-studio-dev.genlayer.com/tx/0xf69a6313f336c6ef0318e961596479d7e1cf88d261350170f8e980dacd10b1ef) |
-| 11 | `release(profile.html)` | **Alice** | **ERROR** | refused: only the holder may release, and she is not the holder any more | [`0xf12ebfe6…21b9dc`](https://explorer-studio-dev.genlayer.com/tx/0xf12ebfe661f00e407e2610984d4a076fe04d36551195fa788fb076a72c21b9dc) |
-| 12 | `release(profile.html)` | Bob | accepted | the holder gives the page up | [`0x3018708d…bc56f2`](https://explorer-studio-dev.genlayer.com/tx/0x3018708d3b9e8ed81e646dd7681e44cfa5451df3a32765cd18d1e3cb32bc56f2) |
+| 1 | `claim(thread-2.html)` | **Bob** | accepted, **binds nothing** | Bob's token is on the page, but only in a visitor's comment. Validators: `not_own` | [`0x8332aade…09f166`](https://explorer-studio-dev.genlayer.com/tx/0x8332aadeae5d8d0251cfe19877498caa40bf78cf06bf9c308739e28c8e09f166) |
+| 2 | `claim(profile-2.html)` | **Alice** | accepted, **binds nothing** | the page states Bob's token, not Alice's: `absent`, decided in code, no model asked | [`0x24c450e9…7ffb02`](https://explorer-studio-dev.genlayer.com/tx/0x24c450e958ffa04646ecf317b05b62d25392687c48f43c4febb5ae5d357ffb02) |
+| 3 | `claim(profile-2.html)` | Bob | accepted, **bound** | the profile states his token in its own voice. Validators: `own`. Page sha-256 `957c4f5ea473…` | [`0xf10c11d4…2f0a3f`](https://explorer-studio-dev.genlayer.com/tx/0xf10c11d48b27a082567b9800e8de3f788607b7b1e136d9fa54cfdc7e8f2f0a3f) |
+| 4 | `claim(profile-2.html)` | **Alice** | **ERROR** | **UserError** `this page is bound to another address` — refused before any fetch | [`0x9dd91aad…33f65e`](https://explorer-studio-dev.genlayer.com/tx/0x9dd91aadfc37c191e369350ecead11e85202f8e097801eae7e3c0ec5ff33f65e) |
+| 5 | `recheck(profile-2.html)` | Carol | **ERROR** | **UserError** `too early: the next recheck opens at …` | [`0x6041973c…461834`](https://explorer-studio-dev.genlayer.com/tx/0x6041973c31c787f7e1a060d37c4aab5ebcff6c0fe987692958e7b8b227461834) |
+| 6 | `release(profile-2.html)` | **Carol** | **ERROR** | **UserError** `only the holder may release` | [`0x7669df7f…00a20a`](https://explorer-studio-dev.genlayer.com/tx/0x7669df7f3042020cb0f1a859bfdd7a9597ab1865b65564861e342be59b00a20a) |
+| 7 | `recheck(profile-2.html)` | Carol | accepted | same hash → `unchanged`: confirmed without a model, `last_seen_at` refreshed | [`0xa31caf76…3c9b40`](https://explorer-studio-dev.genlayer.com/tx/0xa31caf7686bd0410fff1314501a29d9e1497dc07837c4f23470e6623f83c9b40) |
+| 8 | `release(profile-2.html)` | Bob | accepted | the holder gives the page up | [`0x39507dd8…d57752`](https://explorer-studio-dev.genlayer.com/tx/0x39507dd8e5e72a24a2e2a4f833227b4d3e3c2c54e6a1bf1f9ff0543052d57752) |
 
-### What this shows
+`is_bound(profile-2, Bob, 3600)` returned `true` after row 3 and `is_bound(profile-2, Alice, 3600)`
+returned `false`. End state: `owner_of(profile-2.html)` = `{"bound":false,"holder":"","status":"released"}`,
+history `claimed 957c4f5e… → unchanged 957c4f5e…`.
 
-| Attempt | Why it failed, or did not |
-|---|---|
-| A token in someone's comment section (row 1) | the token really is on the page, so a "contains" check would have bound it. Validators agreed it is not the page's own content |
-| A token that belongs to another address (rows 2, 9) | tokens are derived from the page and the address; someone else's is simply absent |
-| Taking a bound page (row 4) | reverts before the page is fetched |
-| The page changes hands (rows 8, 10) | the old binding lapsed on the next recheck, and the new owner of the page could bind it |
-
-`is_bound(profile, Alice, 3600)` returned `true` after row 3 and `is_bound(profile, Alice, 999999)`
-returned `false` after row 8: a lapsed binding is not a binding at any age.
-
-End state, read from chain:
-
-```
-owner_of(profile.html)   {"bound":false,"holder":"","status":"released"}
-owner_of(thread.html)    {"bound":false,"holder":"","status":"none"}
-get_binding(profile).history   claimed 92afb4c7… → unchanged 92afb4c7… → absent b41fc81a… → claimed b41fc81a…   (holder #2)
-```
-
-## Notes on Studio Dev
-
-- The header must be `# v0.3.0` followed by the pinned `Depends` line.
-- Every transaction carries a fee deposit (`genlayer-js@2.0.0-rc.1`, `studioDevnet`, `estimateTransactionFees`).
-- `raw.githubusercontent.com` caches a branch file for about five minutes, so the demo used a
-  420-second recheck interval and waited a full interval after the commit. The contract's own
-  minimum is 60 seconds.
+A page changing hands, and the old binding lapsing on a recheck, is shown in the
+[first run](docs/STUDIO_DEV_V1_RUN.md); that logic is unchanged.

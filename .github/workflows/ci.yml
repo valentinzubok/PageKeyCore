@@ -18,6 +18,10 @@ jobs:
         run: black --check contracts tests
       - name: Lint
         run: flake8 contracts tests --max-line-length=100 --ignore=E501,W503,E203,E402,F403,F405
+      - name: GenVM lint (the check stewards run)
+        run: |
+          python3 -m pip install genvm-linter
+          sh scripts/lint_current_sdk.sh
       - name: Tests
         run: python3 -m pytest -q
       - name: Deployed code equals this source

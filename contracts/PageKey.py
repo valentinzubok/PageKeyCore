@@ -93,7 +93,7 @@ INJECTION_MARKERS = (
 def _require_address(label: str, value: str) -> str:
     addr = str(value).strip()
     if not ADDR_RE.match(addr):
-        raise Exception(f"{label} must be a 0x address")
+        raise gl.vm.UserError(f"{label} must be a 0x address")
     return addr
 
 
@@ -104,20 +104,20 @@ def _same(a: str, b: str) -> bool:
 def _sanitize_text(label: str, text: str, max_len: int) -> str:
     cleaned = " ".join(str(text).split())
     if not cleaned:
-        raise Exception(f"{label} is required")
+        raise gl.vm.UserError(f"{label} is required")
     if len(cleaned) > max_len:
-        raise Exception(f"{label} exceeds {max_len} chars")
+        raise gl.vm.UserError(f"{label} exceeds {max_len} chars")
     return cleaned
 
 
 def _require_https(url: str) -> str:
     u = str(url).strip()
     if not HTTPS_URL_RE.match(u):
-        raise Exception("url must be https:// with no whitespace")
+        raise gl.vm.UserError("url must be https:// with no whitespace")
     if len(u) > MAX_URL_LEN:
-        raise Exception("url exceeds 2048 chars")
+        raise gl.vm.UserError("url exceeds 2048 chars")
     if ".." in u[len("https://") :].split("/"):
-        raise Exception("url must not contain .. path segments")
+        raise gl.vm.UserError("url must not contain .. path segments")
     return u
 
 
@@ -125,9 +125,9 @@ def parse_seconds(label: str, value, low: int, high: int) -> int:
     try:
         seconds = int(str(value).strip())
     except Exception:
-        raise Exception(f"{label} must be an integer number of seconds")
+        raise gl.vm.UserError(f"{label} must be an integer number of seconds")
     if seconds < low or seconds > high:
-        raise Exception(f"{label} must be between {low} and {high} seconds")
+        raise gl.vm.UserError(f"{label} must be between {low} and {high} seconds")
     return seconds
 
 
@@ -135,9 +135,9 @@ def parse_small_int(label: str, value, low: int, high: int) -> int:
     try:
         number = int(str(value).strip())
     except Exception:
-        raise Exception(f"{label} must be an integer")
+        raise gl.vm.UserError(f"{label} must be an integer")
     if number < low or number > high:
-        raise Exception(f"{label} must be between {low} and {high}")
+        raise gl.vm.UserError(f"{label} must be between {low} and {high}")
     return number
 
 
@@ -402,13 +402,13 @@ def decide_ownership(url: str, token: str, digest: dict, flags: list) -> bool:
     except Exception:
         verdict = None
     if not isinstance(verdict, dict):
-        raise Exception("validator verdict was not an object")
+        raise gl.vm.UserError("validator verdict was not an object")
     decision = str(verdict.get("verdict", "invalid"))
     if decision == CHECK_OWN:
         return True
     if decision == CHECK_NOT_OWN:
         return False
-    raise Exception("validators did not return own or not_own")
+    raise gl.vm.UserError("validators did not return own or not_own")
 
 
 def _dump(value) -> str:
@@ -489,15 +489,15 @@ class PageKey(gl.contract.Contract):
         current = bindings.get(page_url)
         if current and current["status"] == STATUS_ACTIVE:
             if _same(current["holder"], caller):
-                raise Exception("you already hold this page")
-            raise Exception("this page is bound to another address")
+                raise gl.vm.UserError("you already hold this page")
+            raise gl.vm.UserError("this page is bound to another address")
         if not current and len(bindings) >= MAX_BINDINGS:
-            raise Exception("binding limit reached")
+            raise gl.vm.UserError("binding limit reached")
         now = now_seconds()
         attempts = json.loads(self.attempts_json)
         key = page_url + "|" + caller.lower()
         if now < int(attempts.get(key, 0)) + CLAIM_COOLDOWN_SECONDS:
-            raise Exception("too early: wait before claiming this page again")
+            raise gl.vm.UserError("too early: wait before claiming this page again")
 
         token = challenge_token(page_url, caller)
         result, content_hash, flags = self._inspect(page_url, token, "")
@@ -553,10 +553,12 @@ class PageKey(gl.contract.Contract):
         bindings = self._load()
         b = bindings.get(page_url)
         if not b or b["status"] != STATUS_ACTIVE:
-            raise Exception("no active binding for this page")
+            raise gl.vm.UserError("no active binding for this page")
         now = now_seconds()
         if now < int(b["next_recheck_at"]):
-            raise Exception("too early: the next recheck opens at " + str(b["next_recheck_at"]))
+            raise gl.vm.UserError(
+                "too early: the next recheck opens at " + str(b["next_recheck_at"])
+            )
 
         result, content_hash, flags = self._inspect(page_url, b["token"], b["verified_hash"])
 
@@ -611,10 +613,10 @@ class PageKey(gl.contract.Contract):
         bindings = self._load()
         b = bindings.get(page_url)
         if not b or b["status"] != STATUS_ACTIVE:
-            raise Exception("no active binding for this page")
+            raise gl.vm.UserError("no active binding for this page")
         caller = str(gl.message.sender_address)
         if not _same(b["holder"], caller):
-            raise Exception("only the holder may release")
+            raise gl.vm.UserError("only the holder may release")
         now = now_seconds()
         b["status"] = STATUS_RELEASED
         b["ended_at"] = now
@@ -659,7 +661,7 @@ class PageKey(gl.contract.Contract):
     def get_binding(self, url: str) -> str:
         b = self._load().get(str(url).strip())
         if not b:
-            raise Exception("unknown url")
+            raise gl.vm.UserError("unknown url")
         return _dump(b)
 
     @gl.public.view
